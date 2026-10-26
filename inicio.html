@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Galaxia Azul para Vos</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #010105;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        #interface {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            pointer-events: none;
+        }
+        .frase-box {
+            max-width: 85%;
+            text-align: center;
+            min-height: 150px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #frase-texto {
+            color: #ffffff;
+            font-size: 1.6rem;
+            font-weight: 800;
+            text-shadow: 0 0 8px rgba(0, 132, 255, 0.9), 0 0 20px rgba(0, 68, 255, 0.6);
+            opacity: 0;
+            transition: opacity 0.15s ease, transform 0.2s ease;
+            transform: scale(0.9);
+            line-height: 1.4;
+            margin: 0;
+        }
+        #frase-texto.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+        #contador-frase {
+            color: #58a6ff;
+            font-size: 0.9rem;
+            margin-top: 10px;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        #start-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #030712 0%, #020208 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #start-overlay h1 {
+            color: #38bdf8;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+        }
+        #start-overlay p {
+            color: #94a3b8;
+            font-size: 1.1rem;
+            margin-bottom: 35px;
+            max-width: 280px;
+            line-height: 1.5;
+        }
+        .btn-play {
+            padding: 16px 40px;
+            background: linear-gradient(135deg, #1e40af, #3b82f6, #60a5fa);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.5);
+            transition: transform 0.1s;
+        }
+        .btn-play:active {
+            transform: scale(0.95);
+        }
+        #timer-box {
+            position: absolute;
+            bottom: 40px;
+            color: rgba(255, 255, 255, 0.35);
+            font-size: 0.85rem;
+            letter-spacing: 3px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 6px 15px;
+            border-radius: 20px;
+            background: rgba(0,0,0,0.2);
+        }
+    </style>
+    <script src="https://cloudflare.com"></script>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <h1>Galaxia Azul</h1>
+        <p>Subí el volumen al máximo de tu celu para escuchar "La Bestia Pop" y tocá entrar.</p>
+        <button class="btn-play" onclick="comenzar()">ENTRAR</button>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="interface">
+        <div class="frase-box">
+            <p id="frase-texto">Iniciando cosmos...</p>
+            <div id="contador-frase"></div>
+        </div>
+        <div id="timer-box">TIEMPO: <span id="segundos">20</span>S</div>
+    </div>
+
+    <!-- Canción oficial integrada: La Bestia Pop - Patricio Rey y sus Redonditos de Ricota -->
+    <audio id="musica" preload="auto">
+        <source src="https://archive.org" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const frases = [
+            "Eres mi tesoro más valioso.", "Mi universo entero brilla gracias a ti.", "Tu sonrisa ilumina mi galaxia.", "Estaba escrito en las estrellas nuestro encuentro.", "Eres el centro de mi gravedad.",
+            "Mi rincón favorito del universo es a tu lado.", "No hay planeta tan hermoso como el que tú habitas.", "Tu amor es mi órbita perfecta.", "Eres mi principio y mi fin.", "A tu lado el tiempo se detiene.",
+            "Contigo todo el espacio se llena de alegría.", "Eres la estrella que guía mi camino.", "Tus abrazos son mi refugio espacial.", "Mirarte es ver mi propio cielo.", "Me pierdo en la galaxia de tus ojos.",
+            "Eres la casualidad más bonita del cosmos.", "Naciste para brillar y hacerme feliz.", "Mi corazón orbita alrededor del tuyo.", "Eres mi constelación favorita.", "Incluso en el vacío, tu amor me llena.",
+            "Haces que mi mundo sea un lugar mejor.", "Eres el dueño absoluto de mis pensamientos.", "Cada segundo contigo vale una eternidad.", "Tu felicidad es mi misión principal.", "Eres magia pura en este mundo.",
+            "A tu lado no le temo a ninguna oscuridad.", "Eres mi sol en los días nublados.", "El universo es enorme, pero te elegiría solo a ti.", "Tus palabras son melodía para mi alma.", "Eres mi cable a tierra y mi viaje al cielo.",
+            "No cambiaría un instante contigo por nada.", "Eres el sueño del que nunca quiero despertar.", "Tú haces que todo lo difícil sea fácil.", "Mi amor por ti es infinito como el espacio.", "Eres mi gran y mejor acierto.",
+            "Me completas de una forma única.", "Tu voz calma cualquier tormenta interna.", "Eres mi cómplice en esta galaxia.", "Con solo mirarte me alegras el día.", "Eres todo lo que está bien.",
+            "Tienes la llave de mi corazón.", "Eres mi motivación de cada mañana.", "Tu ternura no tiene límites.", "Cada día te quiero un poquito más.", "Eres mi pensamiento más bonito.",
+            "Haces que mi corazón lata más fuerte.", "Contigo el universo se siente seguro.", "Eres mi pedacito de cielo en la tierra.", "Tu amor es el motor de mi vida.", "No hay distancia que apague lo que siento.",
+            "Eres mi refugio en este mundo loco.", "Tu forma de ser me enamora cada día más.", "Eres el paisaje más lindo que he visto.", "Tu lado dulce es mi debilidad absoluta.", "Amo todo lo que somos cuando estamos juntos.",
+            "Eres mi calma en medio del caos.", "Haces que valga la pena cada momento.", "Tu amor expande mi universo entero.", "Eres el brillo que le faltaba a mi vida.", "No te imaginas lo mucho que te pienso.",
+            "Eres mi presente y mi futuro soñado.", "A tu lado todo es mucho más colorido.", "Tu sonrisa es mi meta de cada día.", "Eres mi mejor y más hermosa compañía.", "Tu amor me hace flotar por el espacio.",
+            "Eres la razón de mis sonrisas espontáneas.", "No hay nada más lindo que escuchar tu risa.", "Eres mi hogar, donde quiero estar siempre.", "Tu existencia hace este mundo más bello.", "Te quiero hasta el fin del universo.",
+            "Eres mi estrella fugaz hecha realidad.", "Haces que mi alma se sienta en completa paz.", "Eres mi inspiración de todos los días.", "Cada pequeño detalle tuyo me fascina.", "Contigo el amor se siente real y puro.",
+            "Eres el tesoro al final de mi arcoíris.", "Tu mirada me desarma por completo.", "Eres mi prioridad número uno.", "No hay nadie como tú en todo el cosmos.", "Tú eres mi destino escrito.",
+            "Amo la forma tan linda en que me miras.", "Eres mi rayito de luz en la oscuridad.", "Tu amor es el regalo más grande de mi vida.", "Eres mi persona favorita en el mundo entero.", "Gracias por existir y ser como eres.",
+            "Contigo aprendí lo que es querer de verdad.", "Eres mi paz en los momentos difíciles.", "Tu felicidad es lo único que deseo.", "Eres simplemente perfecto para mí.", "Te amo muchísimo más allá de las estrellas."
+        ];
+
+        let scene, camera, renderer, starGeo, stars, corePlanet;
+        let indexFrase = 0;
+        let segundosRestantes = 20;
+        let reloj, bucleFrases;
+
+        function armarUniverso3D() {
+            const contenedor = document.getElementById('canvas-container');
+            
+            scene = new THREE.Scene();
+            scene.fog = new THREE.FogExp2(0x010105, 0.006);
+
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.z = 1;
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            contenedor.appendChild(renderer.domElement);
+
+            // Generación de la nube galáctica de estrellas
+            starGeo = new THREE.BufferGeometry();
+            const cantidadEstrellas = 2500;
+            const posiciones = new Float32Array(cantidadEstrellas * 3);
+            const velocidades = [];
+
+            for(let i=0; i<cantidadEstrellas; i++) {
+                posiciones[i*3] = (Math.random() - 0.5) * 500;
+                posiciones[i*3+1] = (Math.random() - 0.5) * 500;
+                posiciones[i*3+2] = (Math.random() - 0.5) * 500;
+      
